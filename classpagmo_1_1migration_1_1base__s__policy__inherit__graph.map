@@ -1,0 +1,8 @@
+<map id="pagmo::migration::base_s_policy" name="pagmo::migration::base_s_policy">
+<area shape="rect" id="node3" href="$classpagmo_1_1migration_1_1best__kill__s__policy.html" title="&quot;Choose best and kill him&quot; migration selection policy." alt="" coords="431,5,585,46"/>
+<area shape="rect" id="node4" href="$classpagmo_1_1migration_1_1best__s__policy.html" title="&quot;Choose best&quot; migration selection policy." alt="" coords="431,70,585,111"/>
+<area shape="rect" id="node5" href="$classpagmo_1_1migration_1_1hv__best__s__policy.html" title="Choose &#39;n&#39; greatest contributors migration policy." alt="" coords="436,135,580,177"/>
+<area shape="rect" id="node6" href="$classpagmo_1_1migration_1_1hv__greedy__s__policy.html" title="Choose &#39;n&#39; successive greatest contributors migration policy." alt="" coords="436,201,580,242"/>
+<area shape="rect" id="node7" href="$classpagmo_1_1migration_1_1random__s__policy.html" title="Random migration selection policy." alt="" coords="421,266,595,307"/>
+<area shape="rect" id="node2" href="$classpagmo_1_1migration_1_1base.html" title="Base migration class." alt="" coords="6,143,165,169"/>
+</map>
