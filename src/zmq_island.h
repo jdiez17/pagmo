@@ -84,6 +84,7 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		friend void boost::serialization::load_construct_data(Archive &, pagmo::zmq_island *, const unsigned int);
 	public:
 		zmq_island(const zmq_island &);
+	    ~zmq_island();
 		explicit zmq_island(const algorithm::base &, const problem::base &, int = 0,
 			const migration::base_s_policy & = migration::best_s_policy(),
 			const migration::base_r_policy & = migration::fair_r_policy());
@@ -99,7 +100,7 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 
 		void set_broker_details(std::string, int);
 		void set_token(std::string);
-		bool initialise();
+		bool initialise(std::string);
 		void close();
 
 	private:
@@ -110,13 +111,14 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		int			m_localPort;
 
 		redox::Redox m_brokerConn;
+		redox::Subscriber m_brokerSubscriber;
 
-		zmq::context_t			    m_zmqContext;
-		zmq::socket_t			    m_receiveSocket;
-		std::vector<zmq::socket_t*> m_remoteConnections;
+		zmq::context_t m_zmqContext;
+		zmq::socket_t  m_publisherSocket;
+		zmq::socket_t  m_subscriptionSocket;
 
-		std::string get_ip(std::string);
 		void connect(std::string);
+		void disconnect();
 
 		friend class boost::serialization::access;
 		template <class Archive>

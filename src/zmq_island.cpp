@@ -38,6 +38,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <unordered_set>
+#include <time.h>
 
 #include "algorithm/base.h"
 #include "base_island.h"
@@ -57,7 +58,7 @@ namespace pagmo
  */
 zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_receiveSocket(m_zmqContext, ZMQ_REQ)
+	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB)
 {}
 
 /// Constructor from population.
@@ -66,15 +67,20 @@ zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
  */
 zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_receiveSocket(m_zmqContext, ZMQ_REQ)
+	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB)
 {}
 
 /// Copy constructor.
 /**
  * @see pagmo::base_island constructors.
  */
-zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_receiveSocket(m_zmqContext, ZMQ_REQ) // TODO: does this make sense?
+zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB) // TODO: does this make sense?
 {}
+
+/// Destructor.
+zmq_island::~zmq_island() {
+	disconnect();
+}
 
 /// Assignment operator.
 zmq_island &zmq_island::operator=(const zmq_island &isl)
@@ -91,7 +97,40 @@ base_island_ptr zmq_island::clone() const
 // This method performs the local evolution for this island's population. 
 void zmq_island::perform_evolution(const algorithm::base &algo, population &pop) const
 {
-	// TODO: Magic 
+	const boost::shared_ptr<population> pop_copy(new population(pop));
+	const algorithm::base_ptr algo_copy = algo.clone();
+	//const std::pair<boost::shared_ptr<population>,algorithm::base_ptr> out(pop_copy,algo_copy);
+	const boost::shared_ptr<population> out = pop_copy;
+
+	// First, we send a copy of our population and algorithm
+	std::stringstream ss;
+	boost::archive::text_oarchive oa(ss);
+	oa << out;
+	std::string buffer(ss.str());
+	zmq::message_t msg(buffer.size());
+	memcpy((void *) msg.data(), buffer.c_str(), buffer.size() - 1);
+	m_publisherSocket.send(msg);
+
+	// See if there is any data available
+	zmq::message_t incoming;
+	if(m_subscriptionSocket.recv(&incoming, ZMQ_DONTWAIT) > 0) { 
+		if(incoming.size()) { 
+			try {
+				std::string bytes_in((char *) incoming.data(), incoming.size());
+
+				std::stringstream incoming_ss(bytes_in);
+				boost::archive::text_iarchive ia(incoming_ss);
+				boost::shared_ptr<population> in;
+
+				ia >> in;
+				pop = *in;
+			} catch (const boost::archive::archive_exception &e) {
+				std::cout << "ZMQ Recv Error during island evolution using " << algo.get_name() << ": " << e.what() << std::endl;
+			} catch (...) {
+				std::cout << "ZMQ Recv Error during island evolution using " << algo.get_name() << ", unknown exception caught. :(" << std::endl;
+			}
+		}
+	}
 }
 
 /// Return a string identifying the island's type.
@@ -104,32 +143,6 @@ std::string zmq_island::get_name() const
 	return "ZMQ island";
 }
 
-// The following methods should go in the constructor, but 
-// I'm separating them out for easier debugging.
-// They will eventually be merged into the constructor.
-
-std::string zmq_island::get_ip(std::string broker) { 
-	// TODO(important): Command injection vulnerability.
-	// Look into mitigation strategies: sanitising input, etc.
-	std::string command = "ip route get " + broker;
-	FILE* result_stream = popen(command.c_str(), "r");
-	char result_buffer[100];
-
-	fgets(result_buffer, 100, result_stream);
-	fclose(result_stream);
-
-	std::string output(result_buffer);
-	boost::algorithm::trim_right(output);
-
-	auto pos = output.find("src");
-	if(pos == -1) {
-		return "127.0.0.1"; // TODO: What to do if there's no route to the broker?
-	}
-
-	pos += 4; // "src "
-	return output.substr(pos, -1);
-}
-
 void zmq_island::set_broker_details(std::string host, int port) {
 	m_brokerHost = host;
 	m_brokerPort = port;
@@ -140,30 +153,29 @@ void zmq_island::set_token(std::string token) {
 }
 
 void zmq_island::connect(std::string host) {
-	zmq::socket_t* sck = new zmq::socket_t(m_zmqContext, ZMQ_REQ);
 	std::cout << "DEBUG: Opening connection to " << host << std::endl;
 
-	sck->connect(("tcp://" + host).c_str());
-	m_remoteConnections.push_back(sck);
+	m_subscriptionSocket.connect(("tcp://" + host).c_str());
 }
 
-bool zmq_island::initialise() {
+bool zmq_island::initialise(std::string ip) {
 	if(m_brokerHost == "" || m_brokerPort == -1 || m_token == "") {
 		return false; // Can't initialise if we're missing those parameters
 	}
 
 	// Connect to the broker
-	if(!m_brokerConn.connect(m_brokerHost, m_brokerPort)) {
+	if(!m_brokerConn.connect(m_brokerHost, m_brokerPort) || !m_brokerSubscriber.connect(m_brokerHost, m_brokerPort)) {
 		std::cout << "ERROR: Can't connect to broker" << std::endl; // TODO: better error reporting
 		return false; // can't connect to broker
 	}
 
-	// Obtain IP address to advertise to the peers
-	m_IP = get_ip(m_brokerHost);
+	// Initialise subscription socket
+	m_subscriptionSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
 
 	// Choose a port between 1000 and 2000
+	srand(time(0));
 	m_localPort = rand() % 2000 + 1000;
-	m_IP += ":" + std::to_string(m_localPort);
+	m_IP += ip + ":" + std::to_string(m_localPort);
 
 	std::cout << "DEBUG: IP: '" << m_IP << "'" << std::endl;
 
@@ -187,23 +199,31 @@ bool zmq_island::initialise() {
 	m_brokerConn.commandSync<int>({"SADD", brokerKey, m_IP});
 
 	// Broadcast that we've added ourselves to the list
-	m_brokerConn.commandSync<int>({"PUBLISH", brokerKey + ".control", "connected:" + m_IP});
+	m_brokerConn.commandSync<int>({"PUBLISH", brokerKey + ".control", "connected/" + m_IP});
 
 	// Open incoming socket
-	m_receiveSocket.bind(("tcp://" + m_IP).c_str());
-	// TODO: What to do if port is already in use?
+	m_publisherSocket.bind(("tcp://" + m_IP).c_str());
+
+	// Connect to new peers when they advertise on the control channel
+	m_brokerSubscriber.subscribe(brokerKey + ".control", [&](const std::string&, const std::string& msg) {
+		std::vector<std::string> data;
+		boost::split(data, msg, boost::is_any_of("/"));
+		if(data[0] == "connected") { 
+			connect(data[1]);
+		} else { /* disconnect */ }
+	});
 
 	return true;
 }
 
-// TODO: This should go in the destructor (obviously)
-void zmq_island::close() { 
+void zmq_island::disconnect() {
 	std::string brokerKey = "pagmo.islands." + m_token;
-	
+
 	m_brokerConn.commandSync<int>({"SREM", brokerKey, m_IP});
-	m_brokerConn.commandSync<int>({"PUBLISH", brokerKey + ".control", "disconnected:" + m_IP});
+	m_brokerConn.commandSync<int>({"PUBLISH", brokerKey + ".control", "disconnected/" + m_IP});
 
 	m_brokerConn.disconnect();
+	m_brokerSubscriber.disconnect();
 
 	std::cout << "DEBUG: Closed" << std::endl;
 }

@@ -205,6 +205,7 @@ ENDIF(ENABLE_MPI)
 IF(ENABLE_ZMQ)
     ADD_DEFINITIONS(-DPAGMO_ENABLE_ZMQ)
 	SET(MANDATORY_LIBRARIES ${MANDATORY_LIBRARIES} zmq redox ev hiredis)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpermissive") # workaround for void perform_evolution() const 
 ENDIF(ENABLE_ZMQ)
 
 # If GSL support is requested, look for the library.
