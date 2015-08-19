@@ -109,6 +109,7 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		std::string m_token;
 		std::string m_IP;
 		int			m_localPort;
+		bool	    m_initialised;
 
 		redox::Redox m_brokerConn;
 		redox::Subscriber m_brokerSubscriber;

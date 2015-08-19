@@ -23,7 +23,7 @@ int main() {
 
 	problem::dejong p(10);
 	algorithm::monte_carlo a(100);
-	zmq_island i(a, p, 1);
+	zmq_island i(a, p, 100);
 
 	i.set_broker_details("192.168.1.39", 6379);
 	i.set_token("zeromq_test");

@@ -14,6 +14,7 @@ __all__ = [
     'ipy_island',
     'island',
     'local_island',
+    'zmq_island',
     'migration_direction',
     'population',
     'py_island']
@@ -135,6 +136,101 @@ def _generic_island_ctor(self, *args, **kwargs):
 
 local_island.__original_init__ = local_island.__init__
 local_island.__init__ = _generic_island_ctor
+
+# Raw C++ ZMQ island class.
+_zmq_island = _core._zmq_island
+
+class zmq_island(_core._zmq_island):
+    def __init__(self, *args, **kwargs):
+        """ZMQ Island, yo. Unnamed arguments:
+
+                #. algorithm
+                #. problem or population
+                #. number of individuals (optional and valid only if the second argument is a problem, defaults to 0 if not specified)
+
+        Keyword arguments:
+
+                * *s_policy* -- migration selection policy (defaults to 'best selection' policy)
+                * *r_policy* -- migration replacement policy (defaults to 'fair replacement' policy)
+
+        """
+        if len(args) == 0:
+            raise ValueError(
+                "Cannot initialise ZeroMQ island without parameters for the constructor.")
+
+        from PyGMO.algorithm._algorithm import _base as _base_algorithm
+        from PyGMO.algorithm import base as base_algorithm
+        from PyGMO.problem._problem import _base as _base_problem
+        from PyGMO.problem._problem import _base_stochastic as _base_problem_stochastic
+        from PyGMO.problem import base as base_problem
+        from PyGMO.problem import base_stochastic as base_problem_stochastic
+        from PyGMO.migration._migration import best_s_policy, fair_r_policy, _base_s_policy, _base_r_policy
+
+        if len(args) < 2 or len(args) > 3:
+            raise ValueError(
+                "Unnamed arguments list must have either 2 or three elements, but %d elements were found instead." %
+                (len(args),))
+        if not isinstance(args[0], _base_algorithm):
+            raise TypeError("The first unnamed argument must be an algorithm.")
+        ctor_args = [args[0]]
+        if isinstance(args[1], _base_problem) or isinstance(args[1], _base_problem_stochastic):
+            ctor_args.append(args[1])
+            if len(args) == 3:
+                if not isinstance(args[2], int):
+                    raise TypeError(
+                        "Please provide an integer for the number of individuals in the island.")
+                ctor_args.append(args[2])
+            else:
+                ctor_args.append(0)
+        elif isinstance(args[1], population):
+            if len(args) == 3:
+                raise ValueError(
+                    "When the second unnamed argument is a population, there cannot be a third unnamed argument.")
+            ctor_args.append(args[1])
+        else:
+            raise TypeError(
+                "The second unnamed argument must be either a problem or a population.")
+
+        if 's_policy' in kwargs:
+            ctor_args.append(kwargs['s_policy'])
+        else:
+            ctor_args.append(best_s_policy())
+        if not isinstance(ctor_args[-1], _base_s_policy):
+            raise TypeError("s_policy must be a migration selection policy.")
+
+        if 'r_policy' in kwargs:
+            ctor_args.append(kwargs['r_policy'])
+        else:
+            ctor_args.append(fair_r_policy())
+        if not isinstance(ctor_args[-1], _base_r_policy):
+            raise TypeError("r_policy must be a migration replacement policy.")
+
+        super(type(self), self).__init__(*ctor_args)
+        #if isinstance(self, zmq_island):
+        #    super(type(self), self).__init__(*ctor_args)
+        #elif isinstance(self, _zmq_island):
+        #    self.__original_init__(*ctor_args)
+        #else:
+        #    assert(self is None)
+        #    n_pythonic_items = 0
+        #    if isinstance(args[0], base_algorithm):
+        #        n_pythonic_items += 1
+        #    if isinstance(args[1], base_problem) or isinstance(args[1], base_problem_stochastic):
+        #        n_pythonic_items += 1
+        #    elif isinstance(args[1], population) and (isinstance(args[1].problem, base_problem) or isinstance(args[1], base_problem_stochastic)):
+        #        n_pythonic_items += 1
+        #    if n_pythonic_items > 0:
+        #        return py_island(*args, **kwargs)
+        #    else:
+        #        return local_island(*args, **kwargs)
+        #    _core._base_island.__init__(self, *args)
+
+    def get_name(self):
+        return str(type(self))
+
+    def __get_deepcopy__(self):
+        from copy import deepcopy
+        return deepcopy(self)
 
 # This is the function that will be called by the separate process
 # spawned from py_island.

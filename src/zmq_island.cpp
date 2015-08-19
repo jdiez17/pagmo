@@ -58,7 +58,7 @@ namespace pagmo
  */
 zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB)
+	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false)
 {}
 
 /// Constructor from population.
@@ -67,14 +67,14 @@ zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
  */
 zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB)
+	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false)
 {}
 
 /// Copy constructor.
 /**
  * @see pagmo::base_island constructors.
  */
-zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB) // TODO: does this make sense?
+zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false) // TODO: does this make sense?
 {}
 
 /// Destructor.
@@ -97,37 +97,41 @@ base_island_ptr zmq_island::clone() const
 // This method performs the local evolution for this island's population. 
 void zmq_island::perform_evolution(const algorithm::base &algo, population &pop) const
 {
-	const boost::shared_ptr<population> pop_copy(new population(pop));
-	const algorithm::base_ptr algo_copy = algo.clone();
-	//const std::pair<boost::shared_ptr<population>,algorithm::base_ptr> out(pop_copy,algo_copy);
-	const boost::shared_ptr<population> out = pop_copy;
+	algo.evolve(pop);
 
-	// First, we send a copy of our population and algorithm
-	std::stringstream ss;
-	boost::archive::text_oarchive oa(ss);
-	oa << out;
-	std::string buffer(ss.str());
-	zmq::message_t msg(buffer.size());
-	memcpy((void *) msg.data(), buffer.c_str(), buffer.size() - 1);
-	m_publisherSocket.send(msg);
+	if(m_initialised) {
+		const boost::shared_ptr<population> pop_copy(new population(pop));
+		const algorithm::base_ptr algo_copy = algo.clone();
+		//const std::pair<boost::shared_ptr<population>,algorithm::base_ptr> out(pop_copy,algo_copy);
+		const boost::shared_ptr<population> out = pop_copy;
 
-	// See if there is any data available
-	zmq::message_t incoming;
-	if(m_subscriptionSocket.recv(&incoming, ZMQ_DONTWAIT) > 0) { 
-		if(incoming.size()) { 
-			try {
-				std::string bytes_in((char *) incoming.data(), incoming.size());
+		// First, we send a copy of our population and algorithm
+		std::stringstream ss;
+		boost::archive::text_oarchive oa(ss);
+		oa << out;
+		std::string buffer(ss.str());
+		zmq::message_t msg(buffer.size());
+		memcpy((void *) msg.data(), buffer.c_str(), buffer.size() - 1);
+		m_publisherSocket.send(msg);
 
-				std::stringstream incoming_ss(bytes_in);
-				boost::archive::text_iarchive ia(incoming_ss);
-				boost::shared_ptr<population> in;
+		// See if there is any data available
+		zmq::message_t incoming;
+		if(m_subscriptionSocket.recv(&incoming, ZMQ_DONTWAIT) > 0) { 
+			if(incoming.size()) { 
+				try {
+					std::string bytes_in((char *) incoming.data(), incoming.size());
 
-				ia >> in;
-				pop = *in;
-			} catch (const boost::archive::archive_exception &e) {
-				std::cout << "ZMQ Recv Error during island evolution using " << algo.get_name() << ": " << e.what() << std::endl;
-			} catch (...) {
-				std::cout << "ZMQ Recv Error during island evolution using " << algo.get_name() << ", unknown exception caught. :(" << std::endl;
+					std::stringstream incoming_ss(bytes_in);
+					boost::archive::text_iarchive ia(incoming_ss);
+					boost::shared_ptr<population> in;
+
+					ia >> in;
+					pop = *in;
+				} catch (const boost::archive::archive_exception &e) {
+					std::cout << "ZMQ Recv Error during island evolution using " << algo.get_name() << ": " << e.what() << std::endl;
+				} catch (...) {
+					std::cout << "ZMQ Recv Error during island evolution using " << algo.get_name() << ", unknown exception caught. :(" << std::endl;
+				}
 			}
 		}
 	}
@@ -212,6 +216,8 @@ bool zmq_island::initialise(std::string ip) {
 			connect(data[1]);
 		} else { /* disconnect */ }
 	});
+
+	m_initialised = true;
 
 	return true;
 }
