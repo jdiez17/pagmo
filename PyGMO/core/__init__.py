@@ -209,24 +209,6 @@ if '_zmq_island' in dir(_core):
                 raise TypeError("r_policy must be a migration replacement policy.")
 
             super(type(self), self).__init__(*ctor_args)
-            #if isinstance(self, zmq_island):
-            #    super(type(self), self).__init__(*ctor_args)
-            #elif isinstance(self, _zmq_island):
-            #    self.__original_init__(*ctor_args)
-            #else:
-            #    assert(self is None)
-            #    n_pythonic_items = 0
-            #    if isinstance(args[0], base_algorithm):
-            #        n_pythonic_items += 1
-            #    if isinstance(args[1], base_problem) or isinstance(args[1], base_problem_stochastic):
-            #        n_pythonic_items += 1
-            #    elif isinstance(args[1], population) and (isinstance(args[1].problem, base_problem) or isinstance(args[1], base_problem_stochastic)):
-            #        n_pythonic_items += 1
-            #    if n_pythonic_items > 0:
-            #        return py_island(*args, **kwargs)
-            #    else:
-            #        return local_island(*args, **kwargs)
-            #    _core._base_island.__init__(self, *args)
 
         def get_name(self):
             return str(type(self))
