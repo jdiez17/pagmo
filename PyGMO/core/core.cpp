@@ -393,6 +393,7 @@ BOOST_PYTHON_MODULE(_core)
 		.def("set_broker_details", &zmq_island::set_broker_details)
 		.def("set_token", &zmq_island::set_token)
 		.def("set_ip", &zmq_island::set_ip)
+		.def("set_evolve", &zmq_island::set_evolve)
 		.def("connect", &zmq_island::connect);
 #endif
 

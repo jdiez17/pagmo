@@ -9,4 +9,4 @@ Distributed computation with ZeroMQ
 
    zmq_setup 
    zmq_first_contact
-   zmq_archipelago
+   zmq_monitor
