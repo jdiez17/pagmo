@@ -102,12 +102,13 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 
 		void set_broker_details(std::string, int);
 		void set_token(std::string);
-		bool initialise(std::string);
+		bool connect();
 		void set_evolve(bool);
 		bool get_evolve();
 
 		void set_callback(zmq_island::callback);
 		void disable_callback();
+		void set_ip(std::string ip);
 		void close();
 
 	protected:
@@ -130,7 +131,7 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		zmq::socket_t  m_publisherSocket;
 		zmq::socket_t  m_subscriptionSocket;
 
-		void connect(std::string);
+		void connect_host(std::string);
 		void disconnect();
 
 		friend class boost::serialization::access;

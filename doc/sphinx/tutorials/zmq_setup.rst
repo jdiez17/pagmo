@@ -27,6 +27,7 @@ Now we'll install the compilation tools and necessary libraries (this will take 
 We also need to compile and install `redox` because Debian does not provide a binary package.
 
 .. code-block:: bash
+
     root@dbc834f0d0aa:~# git clone https://github.com/hmartiro/redox /tmp/redox
     (output omitted...)
     root@dbc834f0d0aa:~# cd /tmp/redox/

@@ -31,7 +31,8 @@ int main() {
 
 	i.set_broker_details("192.168.1.39", 6379);
 	i.set_token("zeromq_test");
-	i.initialise("192.168.1.39");
+	i.set_ip("192.168.1.39");
+	i.connect();
 
 	i.set_callback(&callback);
 

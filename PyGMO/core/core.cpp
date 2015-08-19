@@ -392,7 +392,8 @@ BOOST_PYTHON_MODULE(_core)
 		.def("__deepcopy__", &Py_deepcopy_from_ctor<zmq_island>)
 		.def("set_broker_details", &zmq_island::set_broker_details)
 		.def("set_token", &zmq_island::set_token)
-		.def("initialise", &zmq_island::initialise);
+		.def("set_ip", &zmq_island::set_ip)
+		.def("connect", &zmq_island::connect);
 #endif
 
 	// Expose archipelago class.

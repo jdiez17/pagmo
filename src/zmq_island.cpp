@@ -81,7 +81,17 @@ zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 zmq_island::zmq_island(const zmq_island &isl):base_island(isl),
 	m_initialised(false), m_evolve(true), m_callback(NULL), // TODO: does this make sense?
 	m_zmqContext(1), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB)
-{}
+{
+	m_brokerHost = isl.m_brokerHost;
+	m_brokerPort = isl.m_brokerPort;
+	m_token = isl.m_token;
+	m_IP = isl.m_IP;
+	m_localPort = isl.m_localPort;
+	m_evolve = isl.m_evolve;
+
+	connect();
+	std::cout << "yep this is copy" << std::endl;
+}
 
 /// Destructor.
 zmq_island::~zmq_island() {
@@ -98,15 +108,7 @@ zmq_island &zmq_island::operator=(const zmq_island &isl)
 base_island_ptr zmq_island::clone() const
 {
 	disconnect();
-	auto ret = new zmq_island(*this);
-	ret->m_brokerHost = m_brokerHost;
-	ret->m_brokerPort = m_brokerPort;
-	ret->m_token = m_token;
-	ret->m_IP = m_IP;
-	ret->m_localPort = m_localPort;
-	ret->m_evolve = m_evolve;
-
-	return base_island_ptr(ret);
+	return base_island_ptr(new zmq_island(*this));
 }
 
 // This method performs the local evolution for this island's population.
@@ -180,14 +182,14 @@ void zmq_island::set_token(std::string token) {
 	m_token = token;
 }
 
-void zmq_island::connect(std::string host) {
+void zmq_island::connect_host(std::string host) {
 	std::cout << "DEBUG: Opening connection to " << host << std::endl;
 
 	m_subscriptionSocket.connect(("tcp://" + host).c_str());
 }
 
-bool zmq_island::initialise(std::string ip) {
-	if(m_brokerHost == "" || m_brokerPort == -1 || m_token == "") {
+bool zmq_island::connect() {
+	if(m_brokerHost == "" || m_brokerPort == -1 || m_token == "" || m_IP == "") {
 		return false; // Can't initialise if we're missing those parameters
 	}
 
@@ -199,11 +201,6 @@ bool zmq_island::initialise(std::string ip) {
 
 	// Initialise subscription socket
 	m_subscriptionSocket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-
-	// Choose a port between 1000 and 2000
-	srand(time(0));
-	m_localPort = rand() % 2000 + 1000;
-	m_IP += ip + ":" + std::to_string(m_localPort);
 
 	std::cout << "DEBUG: IP: '" << m_IP << "'" << std::endl;
 
@@ -220,7 +217,7 @@ bool zmq_island::initialise(std::string ip) {
 	// Connect to peers
 	auto peers = result.reply();
 	for(auto it = peers.begin(); it != peers.end(); ++it) {
-		connect(*it);
+		connect_host(*it);
 	}
 
 	// Add ourselves to the list of islands on the chosen topic.
@@ -237,7 +234,7 @@ bool zmq_island::initialise(std::string ip) {
 		std::vector<std::string> data;
 		boost::split(data, msg, boost::is_any_of("/"));
 		if(data[0] == "connected") {
-			connect(data[1]);
+			connect_host(data[1]);
 		} else { /* disconnect */ }
 	});
 
@@ -247,17 +244,19 @@ bool zmq_island::initialise(std::string ip) {
 }
 
 void zmq_island::disconnect() {
-	std::string brokerKey = "pagmo.islands." + m_token;
+	if(m_initialised) {
+		std::string brokerKey = "pagmo.islands." + m_token;
 
-	m_brokerConn.commandSync<int>({"SREM", brokerKey, m_IP});
-	m_brokerConn.commandSync<int>({"PUBLISH", brokerKey + ".control", "disconnected/" + m_IP});
+		m_brokerConn.commandSync<int>({"SREM", brokerKey, m_IP});
+		m_brokerConn.commandSync<int>({"PUBLISH", brokerKey + ".control", "disconnected/" + m_IP});
 
-	m_brokerConn.disconnect();
-	m_brokerSubscriber.disconnect();
+		m_brokerConn.disconnect();
+		m_brokerSubscriber.disconnect();
 
-	m_publisherSocket.disconnect(("tcp://" + m_IP).c_str());
+		m_publisherSocket.disconnect(("tcp://" + m_IP).c_str());
 
-	std::cout << "DEBUG: Closed" << std::endl;
+		std::cout << "DEBUG: Closed" << std::endl;
+	}
 }
 
 void zmq_island::set_evolve(bool e) {
@@ -274,6 +273,12 @@ void zmq_island::set_callback(zmq_island::callback c) {
 
 void zmq_island::disable_callback() {
 	m_callback = NULL;
+}
+
+void zmq_island::set_ip(std::string ip) {
+	srand(time(0));
+	m_localPort = rand() % 2000 + 1000;
+	m_IP += ip + ":" + std::to_string(m_localPort);
 }
 
 }
