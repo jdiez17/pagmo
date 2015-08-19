@@ -19,7 +19,8 @@ Noe that we have a Redis server running and we have compiled PaGMO and PyGMO wit
     isl = zmq_island(algo, pop)
     isl.set_broker_details("127.0.0.1", 6379)
     isl.set_token("schwefel10_de10_pop20")
-    isl.initialise("127.0.0.1")
+    isl.set_ip("127.0.0.1")
+    isl.connect()
 
     while True:
         isl.evolve(10)
@@ -27,7 +28,7 @@ Noe that we have a Redis server running and we have compiled PaGMO and PyGMO wit
 
         time.sleep(1)
 
-This code will set up a single ZeroMQ island working on the 10-dimensional Schwefel problem and using the Differential Evolution algorithm. The population of the island will be 20. Lines 4-6 set up the problem, and lines 8-11 set up the island itself. 
+This code will set up a single ZeroMQ island working on the 10-dimensional Schwefel problem and using the Differential Evolution algorithm. The population of the island will be 20. Lines 4-6 set up the problem, and lines 8-12 set up the island itself. 
 
 In this tutorial we assume that the broker is at 127.0.0.1:6379, and we will be binding the receiving port only on the loopback inteface, but in a networked setup you would use IPs that are accessible beyond localhost.
 

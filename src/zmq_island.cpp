@@ -72,6 +72,7 @@ zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""),
 	m_initialised(false), m_evolve(true), m_callback(NULL),
 	m_zmqContext(1), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB)
+
 {}
 
 /// Copy constructor.
@@ -88,9 +89,9 @@ zmq_island::zmq_island(const zmq_island &isl):base_island(isl),
 	m_IP = isl.m_IP;
 	m_localPort = isl.m_localPort;
 	m_evolve = isl.m_evolve;
+	m_callback = isl.m_callback;
 
 	connect();
-	std::cout << "yep this is copy" << std::endl;
 }
 
 /// Destructor.
