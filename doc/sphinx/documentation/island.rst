@@ -265,7 +265,15 @@ island and that, in reality, is a helper function returning automatically the co
 
         The token can be any string, but describing the algorithm and problem in the token is useful to monitor the progress of the computation. A way of monitoring the progress is described in the tutorial (TODO: link), where a user connects to the ZeroMQ network but does not perform evolution tasks.
 
-   .. method:: PyGMO.zmq_island.initialise((string) ip)
+   .. method:: PyGMO.zmq_island.set_ip((string) ip)
+
+        This method sets the IP address to be used for incoming connections.
+
+   .. method:: PyGMO.zmq_island.set_evolve((bool) evolve)
+        
+        If `set_evolve(false)` is called, then this island will not perform any evolution operations.
+
+   .. method:: PyGMO.zmq_island.connect()
 
         This method will initialise the communication capabilities of the ZeroMQ island by communicating with the network, connecting to its peers and broadcasting the new connection.
 
@@ -283,7 +291,8 @@ island and that, in reality, is a helper function returning automatically the co
            isl = zmq_island(algo,pop)
            isl.set_broker_details("127.0.0.1", 6379)
            isl.set_token("schwefel2_de10_pop10")
-           isl.initialise("127.0.0.1")
+           isl.set_ip("127.0.0.1")
+           isl.connect()
 
            while True:
                isl.evolve(10)
