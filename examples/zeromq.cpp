@@ -21,9 +21,9 @@ int main() {
 
 	quit.store(false);
 
-    problem::dejong p(10);
-    algorithm::monte_carlo a(100);
-    zmq_island i(a, p, 1);
+	problem::dejong p(10);
+	algorithm::monte_carlo a(100);
+	zmq_island i(a, p, 1);
 
 	i.set_broker_details("192.168.1.39", 6379);
 	i.set_token("zeromq_test");
@@ -35,5 +35,5 @@ int main() {
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 
-    return 0;
+	return 0;
 }
