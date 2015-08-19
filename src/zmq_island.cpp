@@ -133,6 +133,7 @@ void zmq_island::perform_evolution(const algorithm::base &algo, population &pop)
 		memcpy((void *) msg.data(), buffer.c_str(), buffer.size() - 1);
 		m_publisherSocket.send(msg);
 
+
 		// See if there is any data available
 		zmq::message_t incoming;
 #if ZMQ_VERSION >= ZMQ_MAKE_VERSION(3, 0, 0)
@@ -142,7 +143,9 @@ void zmq_island::perform_evolution(const algorithm::base &algo, population &pop)
 		if(m_subscriptionSocket.recv(&incoming, ZMQ_NOBLOCK) > 0) {
 #endif
 			if(incoming.size()) {
-				m_callback(incoming);
+				if(m_callback != NULL) {
+					m_callback(incoming);
+				}
 
 				try {
 					std::string bytes_in((char *) incoming.data(), incoming.size());
