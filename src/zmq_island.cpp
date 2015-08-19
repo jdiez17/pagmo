@@ -58,8 +58,8 @@ namespace pagmo
  */
 zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), 
-	m_zmqContext(1),	
+	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""),
+	m_zmqContext(1),
 	m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
 	m_evolve(true), m_callback(NULL)
 {}
@@ -71,7 +71,7 @@ zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
 zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
 	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""),
-	m_zmqContext(1), 
+	m_zmqContext(1),
 	m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
 	m_evolve(true), m_callback(NULL)
 {}
@@ -80,7 +80,7 @@ zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 /**
  * @see pagmo::base_island constructors.
  */
-zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_zmqContext(1), 
+zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_zmqContext(1),
 	m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
 	m_evolve(true), m_callback(NULL) // TODO: does this make sense?
 {}
@@ -102,7 +102,7 @@ base_island_ptr zmq_island::clone() const
 	return base_island_ptr(new zmq_island(*this));
 }
 
-// This method performs the local evolution for this island's population. 
+// This method performs the local evolution for this island's population.
 void zmq_island::perform_evolution(const algorithm::base &algo, population &pop) const
 {
 	if(m_evolve) {
@@ -126,8 +126,13 @@ void zmq_island::perform_evolution(const algorithm::base &algo, population &pop)
 
 		// See if there is any data available
 		zmq::message_t incoming;
-		if(m_subscriptionSocket.recv(&incoming, ZMQ_DONTWAIT) > 0) { 
-			if(incoming.size()) { 
+#if ZMQ_VERSION >= ZMQ_MAKE_VERSION(3, 0, 0)
+		// https://github.com/zeromq/libzmq/blob/master/NEWS#L548
+		if(m_subscriptionSocket.recv(&incoming, ZMQ_DONTWAIT) > 0) {
+#else
+		if(m_subscriptionSocket.recv(&incoming, ZMQ_NOBLOCK) > 0) {
+#endif
+			if(incoming.size()) {
 				m_callback(incoming);
 
 				try {
@@ -197,7 +202,7 @@ bool zmq_island::initialise(std::string ip) {
 
 	std::string brokerKey = "pagmo.islands." + m_token;
 	// Get list of peers
-	redox::Command<std::unordered_set<std::string> >& result = 
+	redox::Command<std::unordered_set<std::string> >& result =
 		m_brokerConn.commandSync<std::unordered_set<std::string> >({"SMEMBERS", brokerKey});
 
 	if(!result.ok()) {
@@ -224,7 +229,7 @@ bool zmq_island::initialise(std::string ip) {
 	m_brokerSubscriber.subscribe(brokerKey + ".control", [&](const std::string&, const std::string& msg) {
 		std::vector<std::string> data;
 		boost::split(data, msg, boost::is_any_of("/"));
-		if(data[0] == "connected") { 
+		if(data[0] == "connected") {
 			connect(data[1]);
 		} else { /* disconnect */ }
 	});
