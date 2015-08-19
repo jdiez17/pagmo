@@ -12,6 +12,10 @@ void sig(int) {
 	quit.store(true);
 }
 
+void callback(zmq::message_t& msg) {
+	std::cout << "Got a " << msg.size() << "byte message from the network." << std::endl;
+}
+
 int main() {
 	struct sigaction sa;
 	memset(&sa, 0, sizeof(sa));
@@ -28,6 +32,8 @@ int main() {
 	i.set_broker_details("192.168.1.39", 6379);
 	i.set_token("zeromq_test");
 	i.initialise("192.168.1.39");
+
+	i.set_callback(&callback);
 
 	while(!quit) { 
 		i.evolve(1);

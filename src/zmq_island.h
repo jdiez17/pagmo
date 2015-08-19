@@ -96,11 +96,18 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 	protected:
 		void perform_evolution(const algorithm::base &, population &) const;
 	public:
+		typedef void (*callback)(zmq::message_t&);
+
 		std::string get_name() const;
 
 		void set_broker_details(std::string, int);
 		void set_token(std::string);
 		bool initialise(std::string);
+		void set_evolve(bool);
+		bool get_evolve();
+
+		void set_callback(zmq_island::callback);
+		void disable_callback();
 		void close();
 
 	private:
@@ -109,7 +116,6 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		std::string m_token;
 		std::string m_IP;
 		int			m_localPort;
-		bool	    m_initialised;
 
 		redox::Redox m_brokerConn;
 		redox::Subscriber m_brokerSubscriber;
@@ -117,6 +123,11 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		zmq::context_t m_zmqContext;
 		zmq::socket_t  m_publisherSocket;
 		zmq::socket_t  m_subscriptionSocket;
+
+		bool m_initialised;
+		bool m_evolve;
+
+		zmq_island::callback m_callback;
 
 		void connect(std::string);
 		void disconnect();

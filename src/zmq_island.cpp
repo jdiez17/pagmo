@@ -58,7 +58,8 @@ namespace pagmo
  */
 zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false)
+	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
+	m_evolve(true), m_callback(NULL)
 {}
 
 /// Constructor from population.
@@ -67,14 +68,16 @@ zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
  */
 zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false)
+	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
+	m_evolve(true), m_callback(NULL)
 {}
 
 /// Copy constructor.
 /**
  * @see pagmo::base_island constructors.
  */
-zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false) // TODO: does this make sense?
+zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
+	m_evolve(true), m_callback(NULL) // TODO: does this make sense?
 {}
 
 /// Destructor.
@@ -97,7 +100,9 @@ base_island_ptr zmq_island::clone() const
 // This method performs the local evolution for this island's population. 
 void zmq_island::perform_evolution(const algorithm::base &algo, population &pop) const
 {
-	algo.evolve(pop);
+	if(m_evolve) {
+		algo.evolve(pop);
+	}
 
 	if(m_initialised) {
 		const boost::shared_ptr<population> pop_copy(new population(pop));
@@ -118,6 +123,8 @@ void zmq_island::perform_evolution(const algorithm::base &algo, population &pop)
 		zmq::message_t incoming;
 		if(m_subscriptionSocket.recv(&incoming, ZMQ_DONTWAIT) > 0) { 
 			if(incoming.size()) { 
+				m_callback(incoming);
+
 				try {
 					std::string bytes_in((char *) incoming.data(), incoming.size());
 
@@ -232,6 +239,22 @@ void zmq_island::disconnect() {
 	m_brokerSubscriber.disconnect();
 
 	std::cout << "DEBUG: Closed" << std::endl;
+}
+
+void zmq_island::set_evolve(bool e) {
+	m_evolve = e;
+}
+
+bool zmq_island::get_evolve() {
+	return m_evolve;
+}
+
+void zmq_island::set_callback(zmq_island::callback c) {
+	m_callback = c;
+}
+
+void zmq_island::disable_callback() {
+	m_callback = NULL;
 }
 
 }
