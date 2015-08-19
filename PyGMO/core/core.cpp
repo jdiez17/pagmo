@@ -49,7 +49,9 @@
 #include "../../src/algorithm/base.h"
 #include "../../src/archipelago.h"
 #include "../../src/base_island.h"
-#include "../../src/zmq_island.h"
+#ifdef PAGMO_ENABLE_ZMQ
+    #include "zmq_island.h"
+#endif
 #include "../../src/config.h"
 #include "../../src/exceptions.h"
 #include "../../src/migration/base_r_policy.h"

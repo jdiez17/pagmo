@@ -110,24 +110,25 @@ class __PAGMO_VISIBLE zmq_island: public base_island
 		void disable_callback();
 		void close();
 
-	private:
+	protected:
 		std::string m_brokerHost;
 		int			m_brokerPort;
 		std::string m_token;
 		std::string m_IP;
 		int			m_localPort;
 
+		bool m_initialised;
+		bool m_evolve;
+
+		zmq_island::callback m_callback;
+
+	private:
 		redox::Redox m_brokerConn;
 		redox::Subscriber m_brokerSubscriber;
 
 		zmq::context_t m_zmqContext;
 		zmq::socket_t  m_publisherSocket;
 		zmq::socket_t  m_subscriptionSocket;
-
-		bool m_initialised;
-		bool m_evolve;
-
-		zmq_island::callback m_callback;
 
 		void connect(std::string);
 		void disconnect();
