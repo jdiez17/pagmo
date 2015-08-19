@@ -99,7 +99,13 @@ base_island_ptr zmq_island::clone() const
 {
 	disconnect();
 	auto ret = new zmq_island(*this);
+	ret->m_brokerHost = m_brokerHost;
+	ret->m_brokerPort = m_brokerPort;
+	ret->m_token = m_token;
 	ret->m_IP = m_IP;
+	ret->m_localPort = m_localPort;
+	ret->m_evolve = m_evolve;
+
 	return base_island_ptr(ret);
 }
 

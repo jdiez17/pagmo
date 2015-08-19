@@ -383,6 +383,7 @@ BOOST_PYTHON_MODULE(_core)
 	// Register to_python conversion from smart pointer.
 	register_ptr_to_python<base_island_ptr>();
 
+#ifdef PAGMO_ENABLE_ZMQ
 	// ZMQ island class.
 	class_<zmq_island,bases<base_island> >("_zmq_island", "ZMQ island class.",init<const algorithm::base &, const problem::base &, optional<int,const migration::base_s_policy &,const migration::base_r_policy &> >())
 		.def(init<const algorithm::base &, const population &, optional<const migration::base_s_policy &,const migration::base_r_policy &> >())
@@ -392,6 +393,7 @@ BOOST_PYTHON_MODULE(_core)
 		.def("set_broker_details", &zmq_island::set_broker_details)
 		.def("set_token", &zmq_island::set_token)
 		.def("initialise", &zmq_island::initialise);
+#endif
 
 	// Expose archipelago class.
 	class_<archipelago>("archipelago", "Archipelago class.", init<const algorithm::base &, const problem::base &,
