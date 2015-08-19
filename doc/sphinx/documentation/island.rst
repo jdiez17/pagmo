@@ -265,7 +265,7 @@ island and that, in reality, is a helper function returning automatically the co
 
         The token can be any string, but describing the algorithm and problem in the token is useful to monitor the progress of the computation. A way of monitoring the progress is described in the tutorial (TODO: link), where a user connects to the ZeroMQ network but does not perform evolution tasks.
 
-    .. method:: PyGMO.zmq_island.initialise((string) ip)
+   .. method:: PyGMO.zmq_island.initialise((string) ip)
 
         This method will initialise the communication capabilities of the ZeroMQ island by communicating with the network, connecting to its peers and broadcasting the new connection.
 

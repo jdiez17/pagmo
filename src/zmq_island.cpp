@@ -58,7 +58,9 @@ namespace pagmo
  */
 zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
+	base_island(a,p,n,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), 
+	m_zmqContext(1),	
+	m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
 	m_evolve(true), m_callback(NULL)
 {}
 
@@ -68,7 +70,9 @@ zmq_island::zmq_island(const algorithm::base &a, const problem::base &p, int n,
  */
 zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 	const migration::base_s_policy &s_policy, const migration::base_r_policy &r_policy):
-	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
+	base_island(a,pop,s_policy,r_policy), m_brokerHost(""), m_brokerPort(-1), m_token(""),
+	m_zmqContext(1), 
+	m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
 	m_evolve(true), m_callback(NULL)
 {}
 
@@ -76,7 +80,8 @@ zmq_island::zmq_island(const algorithm::base &a, const population &pop,
 /**
  * @see pagmo::base_island constructors.
  */
-zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
+zmq_island::zmq_island(const zmq_island &isl):base_island(isl), m_zmqContext(1), 
+	m_publisherSocket(m_zmqContext, ZMQ_PUB), m_subscriptionSocket(m_zmqContext, ZMQ_SUB), m_initialised(false),
 	m_evolve(true), m_callback(NULL) // TODO: does this make sense?
 {}
 
