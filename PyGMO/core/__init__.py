@@ -145,7 +145,7 @@ if '_zmq_island' in dir(_core):
 
     class zmq_island(_core._zmq_island):
         def __init__(self, *args, **kwargs):
-            """ZMQ Island, yo. Unnamed arguments:
+            """ZMQ Island. Unnamed arguments:
 
                     #. algorithm
                     #. problem or population
