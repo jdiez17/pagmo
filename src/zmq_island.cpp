@@ -257,8 +257,6 @@ void zmq_island::disconnect() {
 		m_brokerConn.disconnect();
 		m_brokerSubscriber.disconnect();
 
-		m_publisherSocket.disconnect(("tcp://" + m_IP).c_str());
-
 		std::cout << "DEBUG: Closed" << std::endl;
 	}
 }
