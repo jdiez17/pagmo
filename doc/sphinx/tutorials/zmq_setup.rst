@@ -34,7 +34,7 @@ We also need to compile and install `redox` because Debian does not provide a bi
     root@dbc834f0d0aa:/tmp/redox# mkdir build && cd build
     root@dbc834f0d0aa:/tmp/redox/build# cmake .. -DLIB_SUFFIX="/"
     (output omitted...)
-    root@dbc834f0d0aa:/tmp/redox/build# make && make install
+    root@dbc834f0d0aa:/tmp/redox/build# make && make install && ldconfig
 
 Next, we'll clone the PaGMO source tree and compile it with PyGMO and ZeroMQ enabled. The `make` command takes around 15-20 minutes to complete (could take longer), so this is the perfect time to grab a caffeinated beverage.
 
